@@ -95,7 +95,7 @@ where
     W: WebSocketHandler,
     F: Future<Output = ()> + Send + 'static,
 {
-    pub fn service(self) -> impl Service<Request<Body>,Response = Response<Body>>{
+    pub fn service(self) -> impl Service<Request<Body>,Response = Response<Body>> + Clone{
         let server = self.server.unwrap_or_else(|| {
             let mut builder = auto::Builder::new(TokioExecutor::new());
             builder
