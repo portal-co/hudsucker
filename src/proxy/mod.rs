@@ -17,7 +17,7 @@ use hyper_util::{
     server::conn::auto::{self, Builder},
 };
 use internal::InternalProxy;
-use std::{future::Future, sync::Arc};
+use std::{convert::Infallible, future::Future, sync::Arc};
 use tokio::net::TcpListener;
 use tokio_graceful::Shutdown;
 use tokio_tungstenite::Connector;
@@ -98,7 +98,9 @@ where
     W: WebSocketHandler,
     F: Future<Output = ()> + Send + 'static,
 {
-    pub fn service(self) -> impl Service<Request<Body>, Response = Response<Body>> + Clone {
+    pub fn service(
+        self,
+    ) -> impl Service<Request<Body>, Response = Response<Body>, Error = Infallible> + Clone {
         let server = self.server.unwrap_or_else(|| {
             let mut builder = auto::Builder::new(TokioExecutor::new());
             builder
