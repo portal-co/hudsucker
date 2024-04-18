@@ -26,7 +26,7 @@ mod rewind;
 
 pub mod certificate_authority;
 
-use futures::{Sink, SinkExt, Stream, StreamExt};
+use futures::{AsyncRead, AsyncWrite, Sink, SinkExt, Stream, StreamExt,AsyncReadExt,AsyncWriteExt};
 use http_body_util::Empty;
 use hyper::{Request, Response, StatusCode, Uri};
 use std::{future::Future, net::SocketAddr};
@@ -201,4 +201,5 @@ pub trait WebSocketHandler: Clone + Send + Sync + 'static {
     ) -> impl Future<Output = Option<Message>> + Send {
         async { Some(message) }
     }
+
 }

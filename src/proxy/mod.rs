@@ -95,7 +95,7 @@ where
     W: WebSocketHandler,
     F: Future<Output = ()> + Send + 'static,
 {
-    pub fn service(self) -> impl Service<Request<Incoming>,Response = Response<Body>>{
+    pub fn service(self) -> impl Service<Request<Body>,Response = Response<Body>>{
         let server = self.server.unwrap_or_else(|| {
             let mut builder = auto::Builder::new(TokioExecutor::new());
             builder
@@ -176,7 +176,7 @@ where
                                     websocket_connector: websocket_connector.clone(),
                                     client_addr,
                                 }
-                                .proxy(req)
+                                .proxy(req.map(Body::from))
                             }),
                         );
 

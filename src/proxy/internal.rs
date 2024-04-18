@@ -93,13 +93,13 @@ where
     )]
     pub(crate) async fn proxy(
         mut self,
-        req: Request<Incoming>,
+        req: Request<Body>,
     ) -> Result<Response<Body>, Infallible> {
         let ctx = self.context();
 
         let req = match self
             .http_handler
-            .handle_request(&ctx, req.map(Body::from))
+            .handle_request(&ctx, req)
             .instrument(info_span!("handle_request"))
             .await
         {
@@ -359,7 +359,7 @@ where
                 req = Request::from_parts(parts, body);
             };
 
-            self.clone().proxy(req)
+            self.clone().proxy(req.map(Body::from))
         });
 
         self.server

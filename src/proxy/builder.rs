@@ -209,6 +209,23 @@ impl<C, CA, H, W, F> ProxyBuilder<WantsHandlers<C, CA, H, W, F>> {
         })
     }
 
+    /// Modify the HTTP handler.
+    pub fn modify_http_handler<Fm: FnOnce(H) -> H2, H2: HttpHandler>(
+        self,
+        http_handler: Fm,
+    ) -> ProxyBuilder<WantsHandlers<C, CA, H2, W, F>> {
+        ProxyBuilder(WantsHandlers {
+            al: self.0.al,
+            client: self.0.client,
+            ca: self.0.ca,
+            http_handler: http_handler(self.0.http_handler),
+            websocket_handler: self.0.websocket_handler,
+            websocket_connector: self.0.websocket_connector,
+            server: self.0.server,
+            graceful_shutdown: self.0.graceful_shutdown,
+        })
+    }
+
     /// Set the WebSocket handler.
     pub fn with_websocket_handler<W2: WebSocketHandler>(
         self,
@@ -220,6 +237,23 @@ impl<C, CA, H, W, F> ProxyBuilder<WantsHandlers<C, CA, H, W, F>> {
             ca: self.0.ca,
             http_handler: self.0.http_handler,
             websocket_handler,
+            websocket_connector: self.0.websocket_connector,
+            server: self.0.server,
+            graceful_shutdown: self.0.graceful_shutdown,
+        })
+    }
+
+    /// Modify the WebSocket handler.
+    pub fn modify_websocket_handler<Fm: FnOnce(W) -> W2, W2: WebSocketHandler>(
+        self,
+        websocket_handler: Fm,
+    ) -> ProxyBuilder<WantsHandlers<C, CA, H, W2, F>> {
+        ProxyBuilder(WantsHandlers {
+            al: self.0.al,
+            client: self.0.client,
+            ca: self.0.ca,
+            http_handler: self.0.http_handler,
+            websocket_handler: websocket_handler(self.0.websocket_handler),
             websocket_connector: self.0.websocket_connector,
             server: self.0.server,
             graceful_shutdown: self.0.graceful_shutdown,
