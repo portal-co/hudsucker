@@ -7,7 +7,10 @@ use crate::{
 };
 use builder::{AddrOrListener, WantsAddr};
 use http::{Request, Response};
-use hyper::{body::Incoming, service::{service_fn, Service}};
+use hyper::{
+    body::Incoming,
+    service::{service_fn, Service},
+};
 use hyper_util::{
     client::legacy::{connect::Connect, Client},
     rt::{TokioExecutor, TokioIo},
@@ -95,7 +98,7 @@ where
     W: WebSocketHandler,
     F: Future<Output = ()> + Send + 'static,
 {
-    pub fn service(self) -> impl Service<Request<Body>,Response = Response<Body>> + Clone{
+    pub fn service(self) -> impl Service<Request<Body>, Response = Response<Body>> + Clone {
         let server = self.server.unwrap_or_else(|| {
             let mut builder = auto::Builder::new(TokioExecutor::new());
             builder
@@ -109,7 +112,7 @@ where
         let http_handler = self.http_handler.clone();
         let websocket_handler = self.websocket_handler.clone();
         let websocket_connector = self.websocket_connector.clone();
-        return service_fn(move|req| {
+        return service_fn(move |req| {
             InternalProxy {
                 ca: Arc::clone(&ca),
                 client: client.clone(),

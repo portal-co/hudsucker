@@ -91,10 +91,7 @@ where
             client_addr = %self.client_addr,
         )
     )]
-    pub(crate) async fn proxy(
-        mut self,
-        req: Request<Body>,
-    ) -> Result<Response<Body>, Infallible> {
+    pub(crate) async fn proxy(mut self, req: Request<Body>) -> Result<Response<Body>, Infallible> {
         let ctx = self.context();
 
         let req = match self
