@@ -6,7 +6,8 @@ use crate::{
     certificate_authority::CertificateAuthority, Body, Error, HttpHandler, WebSocketHandler,
 };
 use builder::{AddrOrListener, WantsAddr};
-use hyper::service::service_fn;
+use http::{Request, Response};
+use hyper::{body::Incoming, service::{service_fn, Service}};
 use hyper_util::{
     client::legacy::{connect::Connect, Client},
     rt::{TokioExecutor, TokioIo},
@@ -94,6 +95,33 @@ where
     W: WebSocketHandler,
     F: Future<Output = ()> + Send + 'static,
 {
+    pub fn service(self) -> impl Service<Request<Incoming>,Response = Response<Body>>{
+        let server = self.server.unwrap_or_else(|| {
+            let mut builder = auto::Builder::new(TokioExecutor::new());
+            builder
+                .http1()
+                .title_case_headers(true)
+                .preserve_header_case(true);
+            builder
+        });
+        let client = self.client.clone();
+        let ca = Arc::clone(&self.ca);
+        let http_handler = self.http_handler.clone();
+        let websocket_handler = self.websocket_handler.clone();
+        let websocket_connector = self.websocket_connector.clone();
+        return service_fn(move|req| {
+            InternalProxy {
+                ca: Arc::clone(&ca),
+                client: client.clone(),
+                server: server.clone(),
+                http_handler: http_handler.clone(),
+                websocket_handler: websocket_handler.clone(),
+                websocket_connector: websocket_connector.clone(),
+                client_addr: "127.0.0.1:80".parse().unwrap(),
+            }
+            .proxy(req)
+        });
+    }
     /// Attempts to start the proxy server.
     ///
     /// # Errors
