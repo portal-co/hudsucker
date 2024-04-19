@@ -105,7 +105,7 @@ pub enum WebSocketContext {
 /// Handler for HTTP requests and responses.
 ///
 /// Each request/response pair is passed to the same instance of the handler.
-pub trait HttpHandler: Clone + Send + Sync + 'static {
+pub trait HttpHandler: Clone + Send  + 'static {
     /// This handler will be called for each HTTP request. It can either return a modified request,
     /// or a response. If a request is returned, it will be sent to the upstream server. If a
     /// response is returned, it will be sent to the client.
@@ -146,7 +146,7 @@ pub trait HttpHandler: Clone + Send + Sync + 'static {
     fn should_intercept(
         &mut self,
         _ctx: &HttpContext,
-        _req: &Request<Body>,
+        _req: Request<Empty<()>>,
     ) -> impl Future<Output = bool> + Send {
         async { true }
     }
@@ -155,7 +155,7 @@ pub trait HttpHandler: Clone + Send + Sync + 'static {
 /// Handler for WebSocket messages.
 ///
 /// Messages sent over the same WebSocket Stream are passed to the same instance of the handler.
-pub trait WebSocketHandler: Clone + Send + Sync + 'static {
+pub trait WebSocketHandler: Clone + Send  + 'static {
     /// This handler is responsible for forwarding WebSocket messages from a Stream to a Sink and
     /// recovering from any potential errors.
     fn handle_websocket(

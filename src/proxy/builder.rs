@@ -2,6 +2,7 @@ use crate::{
     certificate_authority::CertificateAuthority, Body, HttpHandler, NoopHandler, Proxy,
     WebSocketHandler,
 };
+use futures::lock::Mutex;
 #[cfg(feature = "rustls-client")]
 use hyper_rustls::{HttpsConnector as RustlsConnector, HttpsConnectorBuilder};
 #[cfg(feature = "native-tls-client")]
@@ -299,8 +300,8 @@ impl<C, CA, H, W, F> ProxyBuilder<WantsHandlers<C, CA, H, W, F>> {
             al: self.0.al,
             client: self.0.client,
             ca: Arc::new(self.0.ca),
-            http_handler: self.0.http_handler,
-            websocket_handler: self.0.websocket_handler,
+            http_handler: Arc::new(Mutex::new(self.0.http_handler)),
+            websocket_handler: Arc::new(Mutex::new(self.0.websocket_handler)),
             websocket_connector: self.0.websocket_connector,
             server: self.0.server,
             graceful_shutdown: self.0.graceful_shutdown,

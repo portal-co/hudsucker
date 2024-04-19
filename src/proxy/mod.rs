@@ -6,6 +6,7 @@ use crate::{
     certificate_authority::CertificateAuthority, Body, Error, HttpHandler, WebSocketHandler,
 };
 use builder::{AddrOrListener, WantsAddr};
+use futures::lock::Mutex;
 use http::{Request, Response};
 use hyper::{
     body::Incoming,
@@ -76,8 +77,8 @@ pub struct Proxy<C, CA, H, W, F> {
     al: AddrOrListener,
     ca: Arc<CA>,
     client: Client<C, Body>,
-    http_handler: H,
-    websocket_handler: W,
+    http_handler: Arc<Mutex<H>>,
+    websocket_handler: Arc<Mutex<W>>,
     websocket_connector: Option<Connector>,
     server: Option<Builder<TokioExecutor>>,
     graceful_shutdown: F,

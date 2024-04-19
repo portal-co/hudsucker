@@ -37,8 +37,8 @@ impl<T: HttpBody<Data = Bytes, Error = Error> + Unpin> Stream for IoStream<T> {
 
 fn decode(
     encoding: &[u8],
-    reader: impl AsyncBufRead + Send + Sync + Unpin + 'static,
-) -> Result<Box<dyn AsyncRead + Send + Sync + Unpin>, Error> {
+    reader: impl AsyncBufRead + Send + Unpin + 'static,
+) -> Result<Box<dyn AsyncRead + Send  + Unpin>, Error> {
     Ok(match encoding {
         b"gzip" | b"x-gzip" => Box::new(GzipDecoder::new(reader)),
         b"deflate" => Box::new(ZlibDecoder::new(reader)),
@@ -50,7 +50,7 @@ fn decode(
 
 enum Decoder<T> {
     Body(T),
-    Decoder(Box<dyn AsyncRead + Send + Sync + Unpin>),
+    Decoder(Box<dyn AsyncRead + Send + Unpin>),
 }
 
 impl Decoder<Body> {

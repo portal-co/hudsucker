@@ -1,12 +1,12 @@
 use crate::Error;
 use futures::{Stream, StreamExt};
-use http_body_util::{combinators::BoxBody, Collected, Empty, Full, StreamBody};
+use http_body_util::{combinators::{BoxBody, UnsyncBoxBody}, Collected, Empty, Full, StreamBody};
 use hyper::body::{Body as HttpBody, Bytes, Frame, Incoming, SizeHint};
 use std::pin::Pin;
 
 #[derive(Debug)]
 enum Internal {
-    BoxBody(BoxBody<Bytes, crate::Error>),
+    BoxBody(UnsyncBoxBody<Bytes, crate::Error>),
     Collected(Collected<Bytes>),
     Empty(Empty<Bytes>),
     Full(Full<Bytes>),
@@ -22,12 +22,12 @@ pub struct Body {
 impl Body {
     pub fn wrap_stream<S, O, E>(stream: S) -> Self
     where
-        S: Stream<Item = Result<O, E>> + Send + Sync + 'static,
+        S: Stream<Item = Result<O, E>> + Send + 'static,
         O: Into<Bytes>,
         E: Into<Error>,
     {
         Self {
-            inner: Internal::BoxBody(BoxBody::new(StreamBody::new(
+            inner: Internal::BoxBody(UnsyncBoxBody::new(StreamBody::new(
                 stream.map(|res| res.map(Into::into).map(Frame::data).map_err(Into::into)),
             ))),
         }
@@ -75,8 +75,8 @@ impl HttpBody for Body {
     }
 }
 
-impl From<BoxBody<Bytes, crate::Error>> for Body {
-    fn from(value: BoxBody<Bytes, crate::Error>) -> Self {
+impl From<UnsyncBoxBody<Bytes, crate::Error>> for Body {
+    fn from(value: UnsyncBoxBody<Bytes, crate::Error>) -> Self {
         Self {
             inner: Internal::BoxBody(value),
         }
@@ -121,7 +121,7 @@ where
 {
     fn from(value: StreamBody<S>) -> Self {
         Self {
-            inner: Internal::BoxBody(BoxBody::new(value)),
+            inner: Internal::BoxBody(UnsyncBoxBody::new(value)),
         }
     }
 }

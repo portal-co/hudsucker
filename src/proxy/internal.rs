@@ -2,7 +2,7 @@ use crate::{
     body::Body, certificate_authority::CertificateAuthority, HttpContext, HttpHandler,
     RequestOrResponse, Rewind, WebSocketContext, WebSocketHandler,
 };
-use futures::{Sink, Stream, StreamExt};
+use futures::{lock::Mutex, Sink, Stream, StreamExt};
 use http::uri::{Authority, Scheme};
 use http_body_util::Empty;
 use hyper::{
@@ -44,8 +44,8 @@ pub(crate) struct InternalProxy<C, CA, H, W> {
     pub ca: Arc<CA>,
     pub client: Client<C, Body>,
     pub server: server::conn::auto::Builder<TokioExecutor>,
-    pub http_handler: H,
-    pub websocket_handler: W,
+    pub http_handler: Arc<Mutex<H>>,
+    pub websocket_handler: Arc<Mutex<W>>,
     pub websocket_connector: Option<Connector>,
     pub client_addr: SocketAddr,
 }
@@ -95,7 +95,7 @@ where
         let ctx = self.context();
 
         let req = match self
-            .http_handler
+            .http_handler.lock().await
             .handle_request(&ctx, req)
             .instrument(info_span!("handle_request"))
             .await
@@ -117,12 +117,12 @@ where
 
             match res {
                 Ok(res) => Ok(self
-                    .http_handler
+                    .http_handler.lock().await
                     .handle_response(&ctx, res.map(Body::from))
                     .instrument(info_span!("handle_response"))
                     .await),
                 Err(err) => Ok(self
-                    .http_handler
+                    .http_handler.lock().await
                     .handle_error(&ctx, err)
                     .instrument(info_span!("handle_error"))
                     .await),
@@ -133,7 +133,7 @@ where
     fn process_connect(mut self, mut req: Request<Body>) -> Response<Body> {
         match req.uri().authority().cloned() {
             Some(authority) => {
-                let span = info_span!("process_connect");
+                // let span = info_span!("process_connect");
                 let fut = async move {
                     match hyper::upgrade::on(&mut req).await {
                         Ok(upgraded) => {
@@ -151,10 +151,11 @@ where
                                 upgraded,
                                 Bytes::copy_from_slice(buffer[..bytes_read].as_ref()),
                             );
-
+                            let (parts,body) = req.into_parts();
+                            let mut req = Request::from_parts(parts.clone(), body);
                             if self
-                                .http_handler
-                                .should_intercept(&self.context(), &req)
+                                .http_handler.lock().await
+                                .should_intercept(&self.context(), Request::from_parts(parts, Empty::new()))
                                 .await
                             {
                                 if buffer == *b"GET " {
@@ -226,7 +227,7 @@ where
                     };
                 };
 
-                spawn_with_trace(fut, span);
+                tokio::spawn(fut);
                 Response::new(Empty::new().into())
             }
             None => bad_request(),
@@ -307,7 +308,7 @@ where
         let InternalProxy {
             websocket_handler, ..
         } = self;
-
+        let websocket_handler = websocket_handler.lock().await.clone();
         spawn_message_forwarder(
             server_stream,
             client_sink,
@@ -410,8 +411,8 @@ mod tests {
             ca: Arc::new(CA),
             client: Client::builder(TokioExecutor::new()).build(HttpConnector::new()),
             server: server::conn::auto::Builder::new(TokioExecutor::new()),
-            http_handler: crate::NoopHandler::new(),
-            websocket_handler: crate::NoopHandler::new(),
+            http_handler: Arc::new(Mutex::new(crate::NoopHandler::new())),
+            websocket_handler: Arc::new(Mutex::new(crate::NoopHandler::new())),
             websocket_connector: None,
             client_addr: "127.0.0.1:8080".parse().unwrap(),
         }

@@ -340,7 +340,7 @@ impl HttpHandler for TestHandler {
         decode_response(res).unwrap()
     }
 
-    async fn should_intercept(&mut self, _ctx: &HttpContext, _req: &Request<Body>) -> bool {
+    async fn should_intercept(&mut self, _ctx: &HttpContext, _req: Request<Empty<()>>) -> bool {
         self.should_intercept
     }
 }
