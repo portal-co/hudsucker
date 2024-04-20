@@ -101,7 +101,7 @@ where
 {
     pub fn service(
         self,
-    ) -> impl Service<Request<Body>, Response = Response<Body>, Error = Infallible> + Clone {
+    ) -> impl Service<Request<Body>, Response = Response<Body>, Error = Infallible, Future = impl Send> + Clone {
         let server = self.server.unwrap_or_else(|| {
             let mut builder = auto::Builder::new(TokioExecutor::new());
             builder
